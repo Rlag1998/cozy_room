@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>snug · a cozy room machine</title>
+<meta name="description" content="An infinitely rerollable procedural cozy room generator. Every seed is a new little world.">
+<style>
+  :root{
+    --ink:#e8ddcc; --ink-dim:rgba(232,221,204,.55);
+    --amber:#e8a04c; --amber-hi:#f4b566; --chip:#2b241c;
+  }
+  *{ box-sizing:border-box; margin:0; padding:0; }
+  html,body{ height:100%; }
+  body{
+    background:radial-gradient(120% 120% at 50% 30%, #241c15, #171310);
+    color:var(--ink);
+    font-family:ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    min-height:100vh; padding:18px 14px calc(18px + env(safe-area-inset-bottom));
+    touch-action:manipulation;
+  }
+  header{ margin-bottom:14px; text-align:center; user-select:none; }
+  header .mark{ font-size:20px; letter-spacing:.04em; font-weight:600; }
+  header .mark em{ font-style:normal; color:var(--amber); }
+  header .sub{ font-size:13px; color:var(--ink-dim); margin-top:2px; }
+  #card{
+    width:min(92vw, 1040px, calc((100vh - 230px) * 1.6));
+    aspect-ratio:16/10; position:relative; flex-shrink:0;
+    border-radius:18px; overflow:hidden; cursor:pointer;
+    box-shadow:0 2px 6px rgba(0,0,0,.5), 0 24px 60px -12px rgba(0,0,0,.65),
+               inset 0 1px 0 rgba(255,235,200,.07);
+    background:#1d1712;
+  }
+  #room{ display:block; width:100%; height:100%; }
+  #bar{
+    display:flex; align-items:center; gap:10px; flex-wrap:wrap; justify-content:center;
+    margin-top:16px; width:min(92vw,1040px);
+  }
+  button{ font:inherit; cursor:pointer; border:none; }
+  #reroll{
+    height:52px; padding:0 26px; border-radius:16px;
+    background:var(--amber); color:#241a0e; font-weight:700; font-size:16px;
+    letter-spacing:.02em; box-shadow:0 3px 0 rgba(0,0,0,.35), 0 10px 24px -8px rgba(232,160,76,.45);
+    transition:transform .08s ease, background .15s ease;
+  }
+  #reroll:hover{ background:var(--amber-hi); }
+  #reroll:active{ transform:scale(.96); }
+  #seedwrap{
+    display:flex; align-items:center; gap:0; height:44px; border-radius:999px;
+    background:var(--chip); border:1px solid rgba(255,235,200,.1); overflow:hidden;
+  }
+  #seedwrap.glint{ animation:glint 1.6s ease; }
+  @keyframes glint{
+    0%{ box-shadow:0 0 0 1px rgba(255,205,100,0); }
+    25%{ box-shadow:0 0 0 2px rgba(255,205,100,.9), 0 0 18px rgba(255,190,80,.6); }
+    100%{ box-shadow:0 0 0 1px rgba(255,205,100,0); }
+  }
+  #seed{
+    font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size:13px; color:var(--ink); background:none; border:none; outline:none;
+    padding:0 8px 0 16px; height:100%; min-width:150px; width:21ch; cursor:text;
+  }
+  #copy{
+    height:100%; padding:0 14px; background:none; color:var(--ink-dim); font-size:15px;
+    border-left:1px solid rgba(255,235,200,.1);
+  }
+  #copy:hover{ color:var(--ink); }
+  #copy.done{ color:var(--amber-hi); }
+  #hint{
+    width:100%; text-align:center; font-size:12px; color:var(--ink-dim);
+    margin-top:10px; transition:opacity 1.2s ease; user-select:none;
+  }
+  #hint.gone{ opacity:0; }
+  footer{ margin-top:14px; font-size:11px; color:rgba(232,221,204,.3); user-select:none; }
+  footer a{ color:inherit; }
+  /* gallery / contact-sheet dev mode */
+  body.gallery{ display:block; padding:20px; }
+  body.gallery #card, body.gallery #bar, body.gallery header, body.gallery footer, body.gallery #hint{ display:none; }
+  #sheet{ display:grid; grid-template-columns:repeat(auto-fill, minmax(300px,1fr)); gap:10px; }
+  #sheet canvas{ width:100%; border-radius:8px; display:block; }
+  #sheet .lbl{ font-size:10px; color:var(--ink-dim); font-family:ui-monospace,monospace; margin:2px 0 6px; }
+  @media (max-width:560px){
+    #reroll{ width:100%; }
+    #seedwrap{ flex:1; min-width:0; }
+    #seed{ width:auto; flex:1; }
+  }
+</style>
+</head>
+<body>
+  <header>
+    <div class="mark">snug <em>·</em></div>
+    <div class="sub">a cozy room machine</div>
+  </header>
+
+  <div id="card" title="new room">
+    <canvas id="room" role="img" aria-label="a cozy room"></canvas>
+  </div>
+
+  <div id="bar">
+    <button id="reroll" aria-label="generate a new room">new room ⚄</button>
+    <div id="seedwrap">
+      <input id="seed" spellcheck="false" autocomplete="off" aria-label="room seed — edit and press enter">
+      <button id="copy" title="copy room link" aria-label="copy room link">⧉</button>
+    </div>
+    <div id="hint">space / R — new room &nbsp;·&nbsp; S — save png &nbsp;·&nbsp; ←/→ — room history &nbsp;·&nbsp; tap the room too</div>
+  </div>
+
+  <footer>every seed is a little world &nbsp;·&nbsp; <a href="https://github.com/Rlag1998/cozy_room">github</a></footer>
+
+  <div id="sheet" hidden></div>
+
+<script src="app.js"></script>
+</body>
+</html>
