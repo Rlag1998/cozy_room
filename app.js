@@ -261,7 +261,7 @@ function genShell(streams, P, weather) {
     const y = .10 * floorY + rf(r, 0, 14);
     shell.windows.push({
       style, w, h, x: cx - w / 2, y, cx,
-      dress: wpick(r, [['curtains', 55], ['blind', 15], ['bare', 30]]),
+      dress: style === 'round' ? 'bare' : wpick(r, [['curtains', 55], ['blind', 15], ['bare', 30]]),
       curtainC: col(P.textileH, 38 * P.Sx + 12, clamp(P.ramp[ri(r, 1, 3)], 20, 80)),
       blindDrop: rf(r, .2, .6),
       frameL: chance(r, .5) ? clamp(P.wallL + 10, 0, 94) : 90,
@@ -2816,6 +2816,7 @@ function balloonAnim(S) {
   let frameCount = 0;
   let rebakeTimer = 0;
   let suppressHash = false;
+  let pushCount = 0;                 // rooms pushed this session — guards ← from exiting
 
   const dpr = () => Math.min(devicePixelRatio || 1, 2);
   function sizeCanvas() {
@@ -2838,6 +2839,7 @@ function balloonAnim(S) {
     if (push) {
       suppressHash = true;
       history.pushState(null, '', '#' + encodeURIComponent(seed));
+      pushCount++;
       setTimeout(() => suppressHash = false, 0);
     }
     if (S.jackpot || S.rare.golden) { wrap.classList.remove('glint'); void wrap.offsetWidth; wrap.classList.add('glint'); }
@@ -2917,22 +2919,24 @@ function balloonAnim(S) {
     if (e.code === 'Space' || e.key === 'r' || e.key === 'R') { e.preventDefault(); reroll(); }
     else if (e.key === 'c' || e.key === 'C') copyBtn.click();
     else if (e.key === 's' || e.key === 'S') savePNG();
-    else if (e.key === 'ArrowLeft') history.back();
+    else if (e.key === 'ArrowLeft') { if (pushCount > 0) { pushCount--; history.back(); } }
     else if (e.key === 'ArrowRight') history.forward();
   });
-  window.addEventListener('popstate', () => {
+  const onNav = () => {
     if (suppressHash) return;
-    const seed = decodeURIComponent(location.hash.slice(1));
+    const seed = hashSeed();
     if (seed && seed !== currentSeed()) applySeed(seed, { push: false });
-  });
-  window.addEventListener('hashchange', () => {
-    if (suppressHash) return;
-    const seed = decodeURIComponent(location.hash.slice(1));
-    if (seed && seed !== currentSeed()) applySeed(seed, { push: false });
-  });
+  };
+  window.addEventListener('popstate', onNav);
+  window.addEventListener('hashchange', onNav);
   document.addEventListener('visibilitychange', () => { lastInteract = performance.now(); });
   ['pointerdown', 'pointermove'].forEach(ev =>
     window.addEventListener(ev, () => lastInteract = performance.now(), { passive: true }));
+
+  function hashSeed() {
+    try { return decodeURIComponent(location.hash.slice(1)); }
+    catch { return location.hash.slice(1); }
+  }
 
   let ro = new ResizeObserver(() => {
     if (sizeCanvas()) {
@@ -2943,7 +2947,7 @@ function balloonAnim(S) {
   ro.observe(card);
 
   /* boot */
-  const initial = decodeURIComponent(location.hash.slice(1));
+  const initial = hashSeed();
   applySeed(initial || mintSeed(), { push: false });
   if (!location.hash) { suppressHash = true; history.replaceState(null, '', '#' + encodeURIComponent(currentSeed())); setTimeout(() => suppressHash = false, 0); }
   requestAnimationFrame(loop);
